@@ -154,10 +154,83 @@ bool DFR_Radar::checkPresence()
       break;
   }
 
-  if( !startCharacterFound || !endCharacterFound )
+  if( !startCharacterFound || !endCharacterFound ){
+    #ifdef DEBUG
+    Serial.print("Error: Invalid data ");
+    Serial.println(packet);
+    #endif
+    return false;
+  }
+  return ( data[7] == '1' );
+}
+
+bool DFR_Radar::readPresence(bool *presense)
+{
+  char packet[packetLength] = {0};
+
+  // Factory default settings have $JYBSS messages sent once per second,
+  // but we won't want to wait; this will prompt for status immediately
+  serialWrite( comGetOutput );
+
+  /**
+   * Get the response immediately after sending the command.
+   *
+   * If command echoing is enabled, there should be three lines:
+   *   1. the "getOutput 1" echoed back
+   *   2. a "Done" status
+   *   3. the "leapMMW:/>" response followed by the $JYBSS data we want
+   *
+   * If command echoing is disabled, there should be two lines:
+   *   1. a "Done" status
+   *   2. the $JYBSS data we want
+   *
+   * Factory default is command echoing on (might change this in `begin()`)
+   */
+  size_t length = readLines( packet, 3 );
+
+  if( !length )
     return false;
 
-  return ( data[7] == '1' );
+  const size_t expectedLength = 16;
+  char data[expectedLength] = {0};
+  uint8_t offset = 0;
+  bool startCharacterFound = false, endCharacterFound = false;
+
+  /**
+   * Parse through the packet until we find a "$", and
+   * then start capturing characters until we find a "*"
+   *
+   * We're expecting to get something like: $JYBSS,1, , , *
+   */
+  for( uint8_t i = 0; i < length; i++ )
+  {
+    char c = packet[i];
+
+    if( c == '$' )
+      startCharacterFound = true;
+
+    if( !startCharacterFound )
+      continue;
+
+    if( c == '*' )
+      endCharacterFound = true;
+
+    data[offset++] = c;
+
+    if( endCharacterFound || offset == expectedLength )
+      break;
+  }
+
+  if( !startCharacterFound || !endCharacterFound ){
+    #ifdef DEBUG
+    Serial.print("Error: Invalid data ");
+    Serial.println(packet);
+    #endif
+    return false;
+  }
+
+  *presense = ( data[7] == '1' );
+  return true;
 }
 
 bool DFR_Radar::setLockout( float time )

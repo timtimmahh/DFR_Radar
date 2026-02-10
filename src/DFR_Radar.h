@@ -106,6 +106,18 @@ class DFR_Radar
     bool checkPresence( void );
 
     /**
+     * @brief Read if the sensor is detecting presence, difference from checkPresence it
+     *        will return if sensor reading successful and the presence data is pass by 
+     *        reference parameter
+     *
+     * @param *presence The presence data
+     * 
+     * @return true if reading sensor successful
+     *         false if reading sensor failed
+     */
+    bool readPresence( bool *presence );
+
+    /**
      * @brief Sets a delay between when the presence detection resets and when it can trigger again.
      *
      * @note Used to prevent short-cycling (re-triggering immediately after a reset).
