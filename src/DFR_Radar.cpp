@@ -202,7 +202,7 @@ bool DFR_Radar::setOutputLatency(const float triggerDelay, const float resetDela
 }
 
 bool DFR_Radar::checkPresence() const {
-    bool presence;
+    bool presence = false;
     readPresence(presence);
     return presence;
 }
