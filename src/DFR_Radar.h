@@ -12,35 +12,33 @@
   */
 
 
-#ifndef __DFR_Radar_H__
-#define __DFR_Radar_H__
+#ifndef DFR_Radar_H_
+#define DFR_Radar_H_
 
 #include <Arduino.h>
 
 
-class DFR_Radar
-{
-  public:
-
+class DFR_Radar {
+public:
     /**
       * @brief Constructor
-      * @param Stream  Software serial port interface
+      * @param s Stream Software serial port interface
       */
-    DFR_Radar( Stream *s );
+    explicit DFR_Radar(Stream *s);
 
     /**
      * @brief Not currently implemented
      *
      * @return true
      */
-    bool begin( void );
+    bool begin(void);
 
     /**
      * @brief Set the serial port to use for communicating with the sensor
      *
      * @param s  The serial port to use
      */
-    void setStream( Stream *s );
+    void setStream(Stream *s);
 
     /**
      * @brief Check if the sensor is ready to accept commands
@@ -48,7 +46,7 @@ class DFR_Radar
      * @return true if the sensor is ready;
      *         false if the sensor is not ready
      */
-    bool isReady();
+    bool isReady() const;
 
     /**
      * @brief Configure sensor detection range
@@ -64,7 +62,23 @@ class DFR_Radar
      *
      * @return false if the range values are invalid (no changes made), true otherwise
      */
-    bool setDetectionRange( float rangeStart, float rangeEnd );
+    bool setDetectionRange(float rangeStart, float rangeEnd);
+
+    /**
+     * @brief Get sensor detection range
+     *
+     * @note Values are in meters; minimum is 0, maximum is 9.45; end must be greater than start.
+     *       Internally, the range is converted to a level between 0-63, each one being ~15cm.  If
+     *       the value isn't a multiple of 15cm, the sensor will round down to the nearest 15cm,
+     *       e.g. 5m = 5 / 0.15 = 33.3, which will be rounded down to 33, so your effective range
+     *       would actually be 4.95m
+     *
+     * @param rangeStart Factory default is 0
+     * @param rangeEnd   Factory default is 6
+     *
+     * @return true if command was successful
+     */
+    bool getDetectionRange(float &rangeStart, float &rangeEnd);
 
     /**
      * @brief Set the sensitivity level
@@ -73,7 +87,16 @@ class DFR_Radar
      *
      * @return false if the level value is invalid (no changes made), true otherwise
      */
-    bool setSensitivity( uint8_t level );
+    bool setSensitivity(uint8_t level);
+
+    /**
+     * @brief Get the sensitivity level
+     *
+     * @param level  0 = Low, 9 = High, 7 = Factory Default
+     *
+     * @return true if the command was successful
+     */
+    bool getSensitivity(uint8_t &level);
 
     /**
      * @brief Configure delays that translate actual presence activity to sensor assertion of presence
@@ -85,7 +108,16 @@ class DFR_Radar
      *
      * @return false if either delay value is invalid (no changes made), true otherwise
      */
-    bool setTriggerLatency( float confirmationDelay, float disappearanceDelay );
+    bool setTriggerLatency(float confirmationDelay, float disappearanceDelay);
+
+    /**
+     * @brief Gets delays that translate actual presence activity to sensor assertion of presence
+     *
+     * @note A longer confirmation delay can reduce false positives.  A longer disappearance delay can bridge gaps between presence events.
+     *
+     * @return true if command was successful
+     */
+    bool getTriggerLatency(float &confirmationDelay, float &disappearanceDelay);
 
     /**
      * @brief Configure delays between state changes on output (IO2)
@@ -95,7 +127,7 @@ class DFR_Radar
      *
      * @return false if either delay value is invalid (no changes made), true otherwise
      */
-    bool setOutputLatency( float triggerDelay, float resetDelay );
+    bool setOutputLatency(float triggerDelay, float resetDelay);
 
     /**
      * @brief Check if the sensor is detecting presence
@@ -103,7 +135,7 @@ class DFR_Radar
      * @return true if presence is currently being detected;
      *         false if no presence or reading sensor failed
      */
-    bool checkPresence( void );
+    bool checkPresence(void) const;
 
     /**
      * @brief Read if the sensor is detecting presence, difference from checkPresence it
@@ -115,7 +147,7 @@ class DFR_Radar
      * @return true if reading sensor successful
      *         false if reading sensor failed
      */
-    bool readPresence( bool &presence );
+    bool readPresence(bool &presence) const;
 
     /**
      * @brief Sets a delay between when the presence detection resets and when it can trigger again.
@@ -127,7 +159,30 @@ class DFR_Radar
      *
      * @return false if the value is invalid (no changes made), true otherwise
      */
-    bool setLockout( float time );
+    bool setLockout(float time);
+
+    /**
+     * @brief Gets the delay between when the presence detection resets and when it can trigger again.
+     *
+     * @note Used to prevent short-cycling (re-triggering immediately after a reset).
+     *
+     * @param time  Time in seconds after the presence detection has reset before it can be triggered again.
+     *              Range is 0.1 - 255; factory default is 1
+     *
+     * @return true if command was successful
+     */
+    bool getLockout(float &time);
+
+    /**
+     * @brief Set whether the IOx pin is HIGH or LOW when triggered.
+     *
+     * @param ioPin         which GPIO pin number to configure [0|1] (GPIO1 is not currently supported).
+     * @param triggerLevel  HIGH = Vcc when triggered, Ground when idle (factory default)
+     *                      LOW  = Ground when triggered, Vcc when idle
+     *
+     * @return false if the value is invalid (no changes made), true otherwise
+     */
+    bool setTriggerLevel(uint8_t ioPin, uint8_t triggerLevel);
 
     /**
      * @brief Set whether the IO2 pin is HIGH or LOW when triggered.
@@ -137,7 +192,128 @@ class DFR_Radar
      *
      * @return false if the value is invalid (no changes made), true otherwise
      */
-    bool setTriggerLevel( uint8_t triggerLevel );
+    bool setTriggerLevel(uint8_t triggerLevel);
+
+    /**
+     * @brief Get whether the IOx pin is HIGH or LOW when triggered.
+     *
+     * @param ioPin         which GPIO pin number to configure [0|1] (GPIO1 is not currently supported).
+     * @param triggerLevel  HIGH = Vcc when triggered, Ground when idle (factory default)
+     *                      LOW  = Ground when triggered, Vcc when idle
+     *
+     * @return true if command was successful
+     */
+    bool getTriggerLevel(uint8_t ioPin, uint8_t &triggerLevel);
+
+    /**
+     * @brief Get whether the IO2 pin is HIGH or LOW when triggered.
+     *
+     * @param triggerLevel  HIGH = Vcc when triggered, Ground when idle (factory default)
+     *                      LOW  = Ground when triggered, Vcc when idle
+     *
+     * @return true if command was successful
+     */
+    bool getTriggerLevel(uint8_t &triggerLevel);
+
+    /**
+     * @brief Enable or disable serial output modes for detection ($JYBSS) or point cloud ($JYRPO).
+     *
+     * @note Allows configuration of whether messages actively push updates and the frequency of updates.
+     *
+     * @param messageType The types of message to configure.
+     *                    0: detection ($JYBSS);
+     *                    1: point cloud ($JYRPO).
+     * @param enable      False to completely disable the output.
+     * @param push        True if updates should actively push data, false otherwise (factory default is true).
+     * @param period      Update frequency in seconds [0.025, 1500) (factory default is 1.0).
+     *                    Larger than 1500 enables passive mode. Allowed range is 1 - 50 Hz.
+     *
+     * @return false if configuration values are invalid (no changes made), true otherwise.
+     */
+    bool setUartOutput(uint8_t messageType, bool enable, bool push = false, float period = 1501);
+
+    /**
+     * @brief Enable or disable serial output modes for detection ($JYBSS).
+     *
+     * @note Allows configuration of whether detection state messages ($JYBSS) actively push updates and the frequency of updates.
+     *
+     * @param enable      False to completely disable the output.
+     * @param push        True if updates should actively push data, false otherwise (factory default is true).
+     * @param period      Update frequency in seconds [0.025, 1500) (factory default is 1.0).
+     *                    Larger than 1500 enables passive mode. Allowed range is 1 - 50 Hz.
+     *
+     * @return false if configuration values are invalid (no changes made), true otherwise.
+     */
+    bool configureUartDetectionOutput(bool enable, bool push = false, float period = 1501);
+
+    /**
+     * @brief Enable or disable serial output modes for point cloud ($JYRPO).
+     *
+     * @note Allows configuration of whether point cloud messages ($JYRPO) actively push updates and the frequency of updates.
+     *
+     * @param enable      False to completely disable the output.
+     * @param push        True if updates should actively push data, false otherwise (factory default is true).
+     * @param period      Update frequency in seconds [0.025, 1500) (factory default is 1.0).
+     *                    Larger than 1500 enables passive mode. Allowed range is 1 - 50 Hz.
+     *
+     * @return false if configuration values are invalid (no changes made), true otherwise.
+     */
+    bool configureUartPointCloudOutput(bool enable, bool push = false, float period = 1501);
+
+    /**
+     * @brief Gets the state of the serial output modes for detection ($JYBSS) or point cloud ($JYRPO);
+     *        whether they actively push updates, and the frequencies at which they update.
+     *
+     * @param messageType the type of message to request. 0: detection ($JYBSS); 1: point cloud ($JYRPO)
+     * @param enable false if output is completely disabled
+     * @param onChange whether it outputs immediately upon changes
+     * @param period the period at which it pushes updates. Active: 0.025-1500; Passive: >1500
+     *
+     * @return true if command was successful
+     */
+    bool getUartOutput(uint8_t messageType, bool &enable, bool &onChange, float &period);
+
+    /**
+     * @brief Gets the state of the serial output mode for detection ($JYBSS);
+     *        whether it actively pushes updates, and the frequencies at which it outputs.
+     *
+     * @param enable false if output is completely disabled
+     * @param onChange whether it outputs immediately upon changes
+     * @param period the period at which it pushes updates. Active: 0.025-1500; Passive: >1500
+     *
+     * @return true if command was successful
+     */
+    bool getUartDetectionOutput(bool &enable, bool &onChange, float &period);
+
+    /**
+     * @brief Gets the state of the serial output mode for point cloud ($JYRPO);
+     *        whether it should actively push updates, and the frequencies at which it outputs.
+     *
+     * @param enable false if output is completely disabled
+     * @param onChange whether it outputs immediately upon changes
+     * @param period the period at which it pushes updates. Active: 0.025-1500; Passive: >1500
+     *
+     * @return true if command was successful
+     */
+    bool getUartPointCloudOutput(bool &enable, bool &onChange, float &period);
+
+    /**
+     * Enable or disable prompt printing (leapMMW:/>) and command echo.
+     *
+     * @param enable true to enable prompt and command echo
+     *
+     * @return true if command was successful
+     */
+    bool setEcho(bool enable);
+
+    /**
+     * Gets the status of prompt printing (leapMMW:/>) and command echo.
+     *
+     * @param enable true if prompot and command echo is enabled
+     *
+     * @return true if command was successful
+     */
+    bool getEcho(bool &enable);
 
     /**
      * @brief Start the sensor
@@ -145,7 +321,7 @@ class DFR_Radar
      * @return true if sensor started (or was already started);
      *         false if sensor failed to start
      */
-    bool start( void );
+    bool start(void);
 
     /**
      * @brief Stop the sensor
@@ -153,27 +329,27 @@ class DFR_Radar
      * @return true if sensor stopped (or was already stopped);
      *         false if sensor failed to stop
      */
-    bool stop( void );
+    bool stop(void);
 
     /**
      * @brief Restart the sensor's internal software (safe; configuration is not lost or changed).
      *
      */
-    void reboot( void );
+    void reboot(void) const;
 
     /**
      * @brief Disable the LED
      *
      * @return true if command was successful
      */
-    bool disableLED( void );
+    bool disableLED(void);
 
     /**
      * @brief Enable the LED
      *
      * @return true if command was successful
      */
-    bool enableLED( void );
+    bool enableLED(void);
 
     /**
      * @brief Set whether LED is enabled.
@@ -184,7 +360,16 @@ class DFR_Radar
      *
      * @return true if command was successful
      */
-    bool configureLED( bool disabled );
+    bool configureLED(bool disabled);
+
+    /**
+     * @brief Get whether LED is enabled.
+     *
+     * @param disabled true if LED is disabled, false if enabled
+     *
+     * @return true if command was successful
+     */
+    bool getLEDMode(bool &disabled);
 
     /**
      * @brief Allows setting multiple configuration options without
@@ -193,7 +378,7 @@ class DFR_Radar
      *
      * @return false if the sensor failed to stop (multi-config mode will be disabled), true otherwise
      */
-    bool configBegin( void );
+    bool configBegin(void);
 
     /**
      * @brief Allows setting multiple configuration options without
@@ -203,7 +388,7 @@ class DFR_Radar
      * @return false if multi-config mode isn't enabled (forgot to call `configBegin()` first or it failed),
      *         or if saving or re-starting failed; true otherwise
      */
-    bool configEnd( void );
+    bool configEnd(void);
 
     /**
      * @brief Restore the sensor configuration to factory default settings.
@@ -211,18 +396,43 @@ class DFR_Radar
      * @return true if command was successful;
      *         false if the sensor failed to stop or if the ecommand failed
      */
-    bool factoryReset( void );
+    bool factoryReset(void);
 
-  private:
+    /**
+     * Gets the sensor's hardware version.
+     *
+     * @param version reference to the sensor's hardware version string.
+     *
+     * @return true if command was successful
+     */
+    bool getHWVersion(char *version);
 
+    /**
+     * Gets the sensor's software version.
+     *
+     * @param version reference to the sensor's software version string.
+     *
+     * @return true if command was successful
+     */
+    bool getSWVersion(char *version);
+
+    /**
+     * @brief Enable or disable USB serial debugging output of sensor data.
+     *
+     * @param enable Whether to enable printing UART data over serial port
+     */
+    void setDebug(const bool enable) { debugSerial = enable; }
+
+private:
     /**
      * @brief Read a line (or more) from the UART port
      *
      * @param buffer Store the read data
+     * @param lineCount number of lines to read
      *
      * @return length of characters captured
      */
-    size_t readLines( char *buffer, size_t lineCount = 1 );
+    size_t readLines(char *buffer, size_t lineCount = 1) const;
 
     /**
      * @brief Executes a command string after first stopping the sensor, then afterwards
@@ -237,14 +447,14 @@ class DFR_Radar
      * @return true if command was successful;
      *         false if sensor failed to stop or re-start, command failed, or save failed
      */
-    bool setConfig( const char *command );
+    bool setConfig(const char *command);
 
     /**
      * @brief Commits configuration data to flash
      *
      * @return true if command was successful
      */
-    bool saveConfig( void );
+    bool saveConfig(void) const;
 
     /**
      * @brief Used to ensure commands are terminated before writing to UART
@@ -253,7 +463,7 @@ class DFR_Radar
      *       it seems to work without it (sensor MCU probably catches the \0),
      *       but let's just be sure we're doing everything right.
      */
-    size_t serialWrite( const char *command );
+    size_t serialWrite(const char *command) const;
 
     /**
      * @brief Writes a command string to the sensor UART port and waits for response
@@ -263,7 +473,7 @@ class DFR_Radar
      * @return true if response was "Done";
      *         false if "Error" or timeout
      */
-    bool sendCommand( const char *command );
+    bool sendCommand(const char *command) const;
 
     /**
      * @brief Writes a command string to the sensor UART port and compares the response to one provided
@@ -273,12 +483,46 @@ class DFR_Radar
      *       return `true`.
      *
      * @param command        A command string generated by one of the other config/command methods
-     * @param acceptResponse The word or phrase to look for that if found will return `true`
+     * @param acceptableResponse The word or phrase to look for that if found will return `true`
      *
      * @return true if response was "Done" or matched `acceptResponse`;
      *         false if timeout or "Error" (and response didn't already match `acceptResponse`)
      */
-    bool sendCommand( const char *command, const char *acceptResponse );
+    bool sendCommand(const char *command, const char *acceptableResponse) const;
+
+    /**
+     * @brief Request the value of the sensor's setting.
+     *
+     * @tparam NParams        The maximum number of parameters provided in the response. (i.e. getRange has 2).
+     * @tparam MaxParamLength The maximum length a parameter can be (i.e. a float with a max value of 1500.000 has 9 including '\0').
+     * @param command         The command string to request data for.
+     * @param outParams       A 2-D array of size NParams x MaxParamLength to return the parsed parameters back.
+     * @param responsePrefix  An optional response prefix used to determine the line with relevant data.
+     *
+     * @return True if command was successful and the requested parameters were parsed.
+     */
+    template<size_t NParams, size_t MaxParamLength>
+    bool getConfig(
+        const char *command,
+        char outParams[NParams][MaxParamLength],
+        const char *responsePrefix
+    );
+
+    /**
+     * @brief Request the value of the sensor's setting. Overloaded with an empty responsePrefix.
+     *
+     * @tparam NParams        The maximum number of parameters provided in the response. (i.e. getRange has 2).
+     * @tparam MaxParamLength The maximum length a parameter can be (i.e. a float with a max value of 1500.000 has 9 including '\0').
+     * @param command         The command string to request data for.
+     * @param outParams       A 2-D array of size NParams x MaxParamLength to return the parsed parameters back.
+     *
+     * @return True if command was successful and the requested parameters were parsed.
+     */
+    template<size_t NParams, size_t MaxParamLength>
+    bool getConfig(
+        const char *command,
+        char outParams[NParams][MaxParamLength]
+    );
 
     /**
      * @brief The serial port (hardware or software) to use for communicating with the sensor
@@ -289,51 +533,90 @@ class DFR_Radar
     // bool isConfigured;
     bool stopped;
     bool multiConfig;
+    bool debugSerial;
 
-    static const uint16_t readPacketTimeout         =  100;
-    static const size_t packetLength                =   64;
+    static constexpr uint16_t readPacketTimeout = 100;
+    static constexpr size_t packetLength = 64;
 
-    static const unsigned long startupDelay         = 2000;
+    static constexpr unsigned long startupDelay = 2000;
 
-    static const unsigned long comTimeout           = 1000;
-    static constexpr const char *comStop            = "sensorStop";
-    static constexpr const char *comStart           = "sensorStart";
-    static constexpr const char *comResetSystem     = "resetSystem 0";
-    static constexpr const char *comSetSensitivity  = "setSensitivity %u";
-    static constexpr const char *comOutputLatency   = "outputLatency -1 %u %u";
-    static constexpr const char *comSetGpioMode     = "setGpioMode 1 %u";
-    static constexpr const char *comGetOutput       = "getOutput 1";
-    static constexpr const char *comSetLedMode      = "setLedMode 1 %u";
-    // static constexpr const char *comSetUartOutput   = "setUartOutput 1 1 0 1501";
-    static constexpr const char *comSetEcho         = "setEcho 0";
+    static constexpr unsigned long comTimeout = 1000;
+    static constexpr const char *comResponse = "Response ";
+    static constexpr const char *comStop = "sensorStop";
+    static constexpr const char *comStart = "sensorStart";
+    static constexpr const char *comResetSystem = "resetSystem 0";
+    static constexpr const char *comSetSensitivity = "setSensitivity %u";
+    static constexpr const char *comGetSensitivity = "getSensitivity";
+    static constexpr const char *comOutputLatency = "outputLatency -1 %u %u";
+    static constexpr const char *comSetGpioMode = "setGpioMode %u %u";
+    static constexpr const char *comGetGpioMode = "getGpioMode %u";
+    static constexpr const char *comGetOutput = "getOutput 1";
+    static constexpr const char *comSetLedMode = "setLedMode 1 %u";
+    static constexpr const char *comGetLedMode = "getLedMode 1";
+    /**
+     * @brief setUartOutput command parameters:
+     *    | Parameter | Value | Description
+     * ---|-----------|-------|------------
+     *  1 | Type      |  1-2  | 1=Detection, 2=Point cloud
+     *  2 | Enabled   |  0-1  | 0=Disabled, 1=Enabled
+     *  3 | Data Mode |  0-1  | 0=Passive(getOutput only), 1=Active
+     *  4 | Period    | 1501  | Frequency of active output
+     *
+     * Serial data output mode and period, with the period unit being second:
+     *   (1) When par4 is set between 0.025 and 1500:
+     *       - The value represents the period of actively outputting data.
+     *       - When par3 = 0, data is actively outputted based on the period set by
+     *                        par4 (default parameter).
+     *       - When par3 = 1, data is outputted immediately when changes occur, or
+     *                        outputted based on the period set by par4 if there's no change.
+     *   (2) When par4 is set to >1500:
+     *       - Data is passively outputted.
+     *       - When par3 = 0, data is not actively outputted and can only be retrieved
+     *                        using the `getOutput` query command.
+     *       - When par3 = 1, data is outputted immediately when changes occur, or
+     *                        not outputted if there's no change.
+     *
+     * @link [DFRobot SEN0521 Manual](https://github.com/user-attachments/files/17264778/sen0521.pdf)
+     * @link [LeapMMW HS2xx3A v1.3 Manual](https://www.leapmmw.com/wp-content/uploads/1609/47/%E7%94%A8%E6%88%B7%E6%89%8B%E5%86%8CV1.3%EF%BC%9AHS2xx3A%E7%B3%BB%E5%88%97%E4%BA%BA%E5%AD%98%E5%9C%A8%E6%A3%80%E6%B5%8B%E6%A8%A1%E5%9D%97.pdf)
+     */
+    static constexpr const char *comSetUartOutputFull = "setUartOutput %u %u %u %.3f";
+    static constexpr const char *comSetUartOutput = "setUartOutput %u %u";
+    static constexpr const char *comGetUartOutput = "getUartOutput %u";
+    static constexpr const char *comSetEcho = "setEcho %u";
+    static constexpr const char *comGetEcho = "getEcho";
+    static constexpr const char *comGetHWV = "getHWV";
+    static constexpr const char *comGetSWV = "getSWV";
     static constexpr const char *comResponseSuccess = "Done";
-    static constexpr const char *comResponseFail    = "Error";
-    static constexpr const char *comFailStopped     = "sensor stopped already";
-    static constexpr const char *comFailStarted     = "sensor started already";
-    static constexpr const char *comSaveCfg         = "saveConfig";
-    static constexpr const char *comFactoryReset    = "resetCfg";
-    static constexpr const char *comPrompt          = "leapMMW:/>";
+    static constexpr const char *comResponseFail = "Error";
+    static constexpr const char *comFailStopped = "sensor stopped already";
+    static constexpr const char *comFailStarted = "sensor started already";
+    static constexpr const char *comSaveCfg = "saveConfig";
+    static constexpr const char *comFactoryReset = "resetCfg";
+    static constexpr const char *comPrompt = "leapMMW:/>";
 
-    #ifdef __AVR__
-      #ifdef _STDLIB_H_
-        static constexpr const char *comSetRange    = "setRange %s %s";
-        static constexpr const char *comSetLatency  = "setLatency %s %s";
-        static constexpr const char *comSetInhibit  = "setInhibit %s";
-      #else
-        #warning Floats in `sprintf()` will be converted to integers
-        static constexpr const char *comSetRange    = "setRange %u %u";
-        static constexpr const char *comSetLatency  = "setLatency %u %u";
-        static constexpr const char *comSetInhibit  = "setInhibit %u";
-      #endif
-    #else
-      // TODO:
-      // #if !defined( ESP32 ) && !defined( ARDUINO_TEENSY ) && ...
-        #warning Assuming floats work in `sprintf()` -- it might not!
-      //#endif
-      static constexpr const char *comSetRange      = "setRange %.3f %.3f";
-      static constexpr const char *comSetLatency    = "setLatency %.3f %.3f";
-      static constexpr const char *comSetInhibit    = "setInhibit %.3f";
-    #endif
+#ifdef __AVR__
+#ifdef _STDLIB_H_
+    static constexpr const char *comSetRange = "setRange %s %s";
+    static constexpr const char *comSetLatency = "setLatency %s %s";
+    static constexpr const char *comSetInhibit = "setInhibit %s";
+#else
+#warning Floats in `sprintf()` will be converted to integers
+    static constexpr const char *comSetRange = "setRange %u %u";
+    static constexpr const char *comSetLatency = "setLatency %u %u";
+    static constexpr const char *comSetInhibit = "setInhibit %u";
+#endif
+#else
+    // TODO:
+    // #if !defined( ESP32 ) && !defined( ARDUINO_TEENSY ) && ...
+#warning Assuming floats work in `sprintf()` -- it might not!
+    //#endif
+    static constexpr const char *comSetRange = "setRange %.3f %.3f";
+    static constexpr const char *comSetLatency = "setLatency %.3f %.3f";
+    static constexpr const char *comSetInhibit = "setInhibit %.3f";
+#endif
+    static constexpr const char *comGetRange = "getRange";
+    static constexpr const char *comGetLatency = "getLatency";
+    static constexpr const char *comGetInhibit = "getInhibit";
 };
 
 #endif
